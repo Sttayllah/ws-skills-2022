@@ -6,19 +6,125 @@
 
 ## 🎓 J'ai compris et je peux expliquer
 
-- Comment développer en utilisant un système de *livereloading* (`nodemon` par exemple) ❌ / ✔️
-- La connexion de mon application à une base de données avec et sans ORM/ODM (avec `mongodb` puis `mongoose` par exemple) ❌ / ✔️
+- Comment développer en utilisant un système de _livereloading_ (`nodemon` par exemple) ✔️
+
+> Nodemon est un outil permettant de surveiller les modifications de fichier dans le répertoire et donc de redémarrer le processus.
+
+Installation "environnement dev":
+
+```
+npm install --save-dev nodemon
+```
+
+Création du script:
+
+```json
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+```
+
+- La connexion de mon application à une base de données avec et sans ORM/ODM (avec `mongodb` puis `mongoose` par exemple) ✔️
+  > SQLite est une librairie qui propose un moteur de BDD relationnelles SQL directement intégré à une application.
+
+Installation:
+
+```
+npm install sqlite3
+```
+
+> TyOrm est une librairie ORM (Object Relationnal Mapping) éxécutée dans Node, écrite en Typescript qui permet de faciliter la manipulation des données d'une BDD traduites sous forme d'objet tout en tirant parti de l'architecture MVC.
+
+Installation:
+
+```
+npm install typeorm
+```
+
 - Le développement d'une API REST et GraphQL (avec les packages `express` et `graphql` par exemple) ❌ / ✔️
-- *Bonus : la manipulation des fichiers système avec `fs` et l'utilisation des streams en NodeJS* ❌ / ✔️
+- _Bonus : la manipulation des fichiers système avec `fs` et l'utilisation des streams en NodeJS_ ❌ / ✔️
 
 ## 💻 J'utilise
 
-### Un exemple personnel commenté ❌ / ✔️
+### Un exemple personnel commenté ✔️
 
-```javascript
-// this function takes a path to a .md file of the host system and write the HTML version of this file
-// the .html file is given back
-const convertMDFileToHTML = (pathToMDfile) => /* ... path to HTML file */
+Entité Wilder:
+
+```Typescript
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import Grade from "./grade";
+
+@Entity()
+class Wilder {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @OneToMany(() => Grade, (grade) => grade.wilder, {
+    onDelete: "CASCADE",
+    eager: true,
+  })
+  grade: Grade[];
+}
+export default Wilder;
+```
+
+Création de la BDD depuis les entités:
+
+```Typescript
+import { DataSource } from "typeorm";
+import Wilder from "./entity/wilder";
+import Skill from "./entity/skill";
+import Grade from "./entity/grade";
+
+const dataSource = new DataSource({
+  type: "sqlite",
+  database: "wildersdb.sqlite",
+  synchronize: true,
+  entities: [Wilder, Skill, Grade],
+  logging: ["query", "error"],
+});
+export default dataSource;
+```
+
+Requête depuis le WilderController:
+
+```Typescript
+getOne: async (req, res) => {
+    const id: string = req.params.wilderId;
+    try {
+      const wilder = await dataSource.getRepository(Wilder).findOne({
+        where: { id: parseInt(id) },
+        relations: {
+          grade: {
+            skill: true,
+          },
+        },
+      });
+
+      if (wilder !== null) {
+        const { id, name, grade } = wilder;
+        const formatedData = {
+          id,
+          name,
+          skill: grade.map((e) => {
+            return {
+              id: e.skill.id,
+              name: e.skill.name,
+              rate: e.grade,
+            };
+          }),
+        };
+        res.send(formatedData);
+      }
+    } catch (e) {
+      console.log(e);
+      res.send(req.body);
+    }
+  },
 ```
 
 ### Utilisation dans un projet ❌ / ✔️
